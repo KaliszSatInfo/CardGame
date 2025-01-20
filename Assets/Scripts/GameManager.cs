@@ -26,19 +26,18 @@ public class GameManager : MonoBehaviour
         GenerateItems();
         StartNewRound();
     }
-
     void StartNewRound()
     {
+        ClearCards();
+
         Card playerCard = deckManager.DrawCard();
         if (playerCard == null)
         {
             Debug.LogError("Failed to draw player card!");
             return;
         }
-
-        playerCardObject = Instantiate(cardPrefab, playerCardPosition.position, Quaternion.identity);
+        GameObject playerCardObject = Instantiate(cardPrefab, playerCardPosition.position, Quaternion.identity, playerCardPosition);
         playerCardObject.GetComponent<CardBehavior>().SetCard(playerCard);
-        Debug.Log($"Player card: {playerCard.Value}");
 
         Card computerCard = deckManager.DrawCard();
         if (computerCard == null)
@@ -46,59 +45,41 @@ public class GameManager : MonoBehaviour
             Debug.LogError("Failed to draw computer card!");
             return;
         }
-
-        computerCardObject = Instantiate(cardPrefab, computerCardPosition.position, Quaternion.identity);
+        GameObject computerCardObject = Instantiate(cardPrefab, computerCardPosition.position, Quaternion.identity, computerCardPosition);
         computerCardObject.GetComponent<CardBehavior>().SetCard(computerCard);
-        Debug.Log($"Computer card: {computerCard.Value}");
 
-        computerCardObject.GetComponent<CardBehavior>().FlipCard(false);
+        Debug.Log($"Player card: {playerCard.GetValue()}, Computer card: {computerCard.GetValue()}");
 
-        Invoke(nameof(EndRound), 10.0f);
+        Invoke(nameof(EndRound), 2.0f);
     }
-
-
     void EndRound()
     {
-        int playerValue = playerCardObject.GetComponent<CardBehavior>().GetCardValue();
-        int computerValue = computerCardObject.GetComponent<CardBehavior>().GetCardValue();
 
-        playerCardObject.GetComponent<CardBehavior>().FlipCard(true);
-        computerCardObject.GetComponent<CardBehavior>().FlipCard(true);
+        int playerValue = playerCardPosition.GetChild(0).GetComponent<CardBehavior>().GetCardValue();
+        int computerValue = computerCardPosition.GetChild(0).GetComponent<CardBehavior>().GetCardValue();
 
         if (playerValue > computerValue)
         {
             playerScore++;
-            Debug.Log("Player wins the round!");
         }
         else if (playerValue < computerValue)
         {
             computerScore++;
-            Debug.Log("Computer wins the round!");
         }
         else
         {
-            Debug.Log("It's a tie! No one gets a point.");
         }
 
         UpdateScoreUI();
 
-        if (playerScore >= 8)
+        if (playerScore >= 8 || computerScore >= 8)
         {
-            Debug.Log("Player wins the game!");
-            EndGame();
+            Debug.Log("Game over!");
+            return;
         }
-        else if (computerScore >= 8)
-        {
-            Debug.Log("Computer wins the game!");
-            EndGame();
-        }
-        else
-        {
-            StartNewRound();
-        }
+
+        StartNewRound();
     }
-
-
     void EndGame()
     {
         Debug.Log("Game Over");
@@ -108,7 +89,6 @@ public class GameManager : MonoBehaviour
         playerScoreText.text = $"Player Score: {playerScore}";
         computerScoreText.text = $"Computer Score: {computerScore}";
     }
-
     void GenerateItems()
     {
         playerItems.Add(new Item(
@@ -129,7 +109,6 @@ public class GameManager : MonoBehaviour
             PeekCard
         ));
     }
-
     void SwapCards()
     {
         Transform playerCard = playerCardPosition.GetChild(0);
@@ -139,7 +118,6 @@ public class GameManager : MonoBehaviour
         playerCard.position = computerCard.position;
         computerCard.position = tempPosition;
     }
-
     void ReplaceActiveCard()
     {
         Transform playerCard = playerCardPosition.GetChild(0);
@@ -149,9 +127,20 @@ public class GameManager : MonoBehaviour
         GameObject newCardObject = Instantiate(cardPrefab, playerCardPosition.position, Quaternion.identity);
         newCardObject.GetComponent<CardBehavior>().SetCard(newCard);
     }
-
     void PeekCard()
     {
         Debug.Log("Peek effect not implemented yet.");
+    }
+    void ClearCards()
+    {
+        foreach (Transform child in playerCardPosition)
+        {
+            Destroy(child.gameObject);
+        }
+
+        foreach (Transform child in computerCardPosition)
+        {
+            Destroy(child.gameObject);
+        }
     }
 }

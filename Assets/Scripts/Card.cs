@@ -12,4 +12,8 @@ public class Card
         Suit = suit;
         ImagePath = $"Cards/{value}_of_{suit}";
     }
+    public int GetValue()
+    {
+        return Value;
+    }
 }

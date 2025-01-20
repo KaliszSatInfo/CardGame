@@ -11,29 +11,26 @@ public class DeckManager : MonoBehaviour
         InitializeDeck();
         ShuffleDeck();
     }
-
     void InitializeDeck()
     {
         foreach (string suit in suits)
         {
             for (int value = 1; value <= 13; value++)
             {
-                for (int i = 0; i < 8; i++)
+                for (int i = 0; i < 2; i++)
                 {
                     deck.Add(new Card(value, suit));
                 }
             }
         }
 
-        for (int i = 0; i < 4; i++)
+       foreach (string suit in suits)
         {
-            deck.Add(new Card(14, "joker"));
+            deck.Add(new Card(14, suit));
         }
 
         ShuffleDeck();
     }
-
-
     void ShuffleDeck()
     {
         for (int i = 0; i < deck.Count; i++)
@@ -44,19 +41,23 @@ public class DeckManager : MonoBehaviour
             deck[randomIndex] = temp;
         }
     }
-
     public Card DrawCard()
     {
         if (deck.Count == 0)
         {
-            Debug.Log("Deck is empty, reshuffling...");
+            Debug.LogWarning("Deck is empty, reshuffling...");
             InitializeDeck();
             ShuffleDeck();
         }
 
-        Card drawnCard = deck[0];
-        deck.RemoveAt(0);
-        return drawnCard;
-    }
+        if (deck.Count > 0)
+        {
+            Card card = deck[0];
+            deck.RemoveAt(0);
+            return card;
+        }
 
+        Debug.LogError("Deck is still empty after reshuffle!");
+        return null;
+    }
 }
