@@ -16,4 +16,8 @@ public class Card
     {
         return Value;
     }
+
+    public string getSprite() {
+        return ImagePath;
+    }
 }

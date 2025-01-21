@@ -2,31 +2,46 @@ using UnityEngine;
 
 public class CardBehavior : MonoBehaviour
 {
-    private SpriteRenderer spriteRenderer;
-    private Card cardData;
-    void Awake()
+    private Card card;
+    private GameManager gameManager;
+    private bool isClickable = false;
+    public SpriteRenderer cardRenderer;
+
+    public void SetCard(Card newCard)
     {
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        card = newCard;
+        Debug.Log($"Setting card to: {card.Value} of {card.Suit}");
+
+        cardRenderer.sprite = Resources.Load<Sprite>(card.getSprite());
     }
-    public void SetCard(Card card)
-    {
-        cardData = card;
-        Sprite cardSprite = Resources.Load<Sprite>(card.ImagePath);
-        spriteRenderer.sprite = cardSprite;
-    }
-    public void FlipCard(bool showFront)
-    {
-        if (showFront)
-        {
-            spriteRenderer.sprite = Resources.Load<Sprite>(cardData.ImagePath);
-        }
-        else
-        {
-            spriteRenderer.sprite = Resources.Load<Sprite>("Cards/Card_Back");
-        }
-    }
+
+
+
     public int GetCardValue()
     {
-        return cardData.Value;
+        return card.Value;
+    }
+
+    public void SetGameManager(GameManager manager)
+    {
+        gameManager = manager;
+    }
+
+    public void SetClickable(bool clickable)
+    {
+        isClickable = clickable;
+    }
+
+    private void OnMouseDown()
+    {
+        if (isClickable)
+        {
+            gameManager.OnCardPlayed(this);
+        }
+    }
+
+    public void FlipCard(bool show)
+    {
+        Debug.Log(show ? $"Flipping card face up: {card}" : "Flipping card face down.");
     }
 }

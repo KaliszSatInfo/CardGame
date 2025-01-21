@@ -5,14 +5,19 @@ public class DeckManager : MonoBehaviour
 {
     private List<Card> deck = new List<Card>();
     private string[] suits = { "hearts", "diamonds", "clubs", "spades" };
+    public int DeckCount => deck.Count;
+
 
     void Start()
     {
         InitializeDeck();
         ShuffleDeck();
     }
-    void InitializeDeck()
+    public void InitializeDeck()
     {
+        deck.Clear();
+        Debug.Log("Initializing deck...");
+
         foreach (string suit in suits)
         {
             for (int value = 1; value <= 13; value++)
@@ -24,15 +29,28 @@ public class DeckManager : MonoBehaviour
             }
         }
 
-       foreach (string suit in suits)
+        foreach (string suit in suits)
         {
             deck.Add(new Card(14, suit));
         }
 
+        Debug.Log($"Deck initialized with {deck.Count} cards.");
         ShuffleDeck();
+        DebugDeckContent();
     }
+
+    public void DebugDeckContent()
+    {
+        foreach (Card card in deck)
+        {
+            Debug.Log($"{card.Value} of {card.Suit}");
+        }
+    }
+
+
     void ShuffleDeck()
     {
+        Debug.Log("Shuffling deck...");
         for (int i = 0; i < deck.Count; i++)
         {
             Card temp = deck[i];
@@ -40,7 +58,9 @@ public class DeckManager : MonoBehaviour
             deck[i] = deck[randomIndex];
             deck[randomIndex] = temp;
         }
+        Debug.Log("Deck shuffled.");
     }
+
     public Card DrawCard()
     {
         if (deck.Count == 0)
