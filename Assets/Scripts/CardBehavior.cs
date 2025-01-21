@@ -14,7 +14,7 @@ public class CardBehavior : MonoBehaviour
 
         if (cardRenderer == null)
         {
-            cardRenderer = gameObject.AddComponent<SpriteRenderer>();  // Pokud není pøítomen, pøidáme SpriteRenderer
+            cardRenderer = gameObject.AddComponent<SpriteRenderer>();
             Debug.Log("SpriteRenderer was not found. Adding one.");
         }
     }
@@ -23,10 +23,9 @@ public class CardBehavior : MonoBehaviour
     {
         card = newCard;
 
-        // Nastavíme obrázek karty
         if (cardRenderer != null)
         {
-            cardRenderer.sprite = Resources.Load<Sprite>(card.getSprite());
+            cardRenderer.sprite = card.GetSprite();
         }
         else
         {
@@ -35,19 +34,23 @@ public class CardBehavior : MonoBehaviour
 
         if (!isActiveCard)
         {
-            SetCardBack();  // Pokud je pasivní karta, zobrazíme card_back
+            SetCardBack();
         }
         else
         {
-            ShowCard();  // Pokud je aktivní karta, zobrazíme skuteèný obrázek
+            ShowCard();
         }
+    }
+
+    public void SetGameManager(GameManager manager)
+    {
+        gameManager = manager;
     }
 
     public void SetActiveCard(bool isActive)
     {
         isActiveCard = isActive;
 
-        // Pokud se karta stane aktivní, ukážeme ji
         if (isActiveCard)
         {
             ShowCard();
@@ -60,7 +63,7 @@ public class CardBehavior : MonoBehaviour
 
     private void ShowCard()
     {
-        cardRenderer.sprite = Resources.Load<Sprite>(card.getSprite());
+        cardRenderer.sprite = card.GetSprite();
         cardRenderer.enabled = true;
     }
 
@@ -68,11 +71,6 @@ public class CardBehavior : MonoBehaviour
     {
         cardRenderer.sprite = Resources.Load<Sprite>("card_back");
         cardRenderer.enabled = true;
-    }
-
-    public void SetGameManager(GameManager manager)
-    {
-        gameManager = manager;
     }
 
     public void SetClickable(bool clickable)
@@ -95,9 +93,22 @@ public class CardBehavior : MonoBehaviour
         }
     }
 
-
-    public void FlipCard(bool show)
+    public void FlipCard(bool showFront)
     {
-        Debug.Log(show ? $"Flipping card face up: {card}" : "Flipping card face down.");
+        if (showFront)
+        {
+            cardRenderer.sprite = card.GetSprite();
+            Debug.Log("Card flipped to front: " + card.GetSprite());
+        }
+        else
+        {
+            cardRenderer.sprite = Resources.Load<Sprite>("card_back");
+            Debug.Log("Card flipped to back.");
+        }
+    }
+
+    public Card GetCard()
+    {
+        return card;
     }
 }

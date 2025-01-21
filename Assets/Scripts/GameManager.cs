@@ -21,7 +21,8 @@ public class GameManager : MonoBehaviour
     private int playerScore = 0;
     private int computerScore = 0;
 
-    private bool canSwapCards = true;  // Pøidáme flag, který umožní výmìnu pouze jednou
+    private bool canSwapCards = true;
+    private bool hasSwapped = false;
 
     void Start()
     {
@@ -30,66 +31,91 @@ public class GameManager : MonoBehaviour
 
     void StartNewRound()
     {
-        // Vytáhneme 4 karty (2 pro hráèe a 2 pro poèítaè)
+        if (deckManager.DeckCount < 4)
+        {
+            Debug.LogWarning("Not enough cards to load 4 cards. Reshuffling...");
+            deckManager.InitializeDeck();
+        }
+
         Card playerActiveCard = deckManager.DrawCard();
         Card playerPassiveCard = deckManager.DrawCard();
         Card computerActiveCard = deckManager.DrawCard();
         Card computerPassiveCard = deckManager.DrawCard();
 
-        // Vytvoøíme objekty karet pro hráèe a poèítaèe
         playerActiveCardObject = Instantiate(cardPrefab, playerActiveCardPosition.position, Quaternion.identity);
         playerActiveCardObject.GetComponent<CardBehavior>().SetCard(playerActiveCard);
-        playerActiveCardObject.GetComponent<CardBehavior>().SetActiveCard(true);  // Aktivní karta hráèe
+        playerActiveCardObject.transform.SetParent(playerActiveCardPosition);
+        playerActiveCardObject.GetComponent<CardBehavior>().SetClickable(false);
+        playerActiveCardObject.GetComponent<CardBehavior>().SetGameManager(this);
+        playerActiveCardObject.GetComponent<CardBehavior>().FlipCard(true);
 
         playerPassiveCardObject = Instantiate(cardPrefab, playerPassiveCardPosition.position, Quaternion.identity);
         playerPassiveCardObject.GetComponent<CardBehavior>().SetCard(playerPassiveCard);
-        playerPassiveCardObject.GetComponent<CardBehavior>().SetActiveCard(false);  // Pasivní karta hráèe
+        playerPassiveCardObject.transform.SetParent(playerPassiveCardPosition);
+        playerPassiveCardObject.GetComponent<CardBehavior>().SetClickable(true);
+        playerPassiveCardObject.GetComponent<CardBehavior>().SetGameManager(this);
+        playerPassiveCardObject.GetComponent<CardBehavior>().FlipCard(false);
 
         computerActiveCardObject = Instantiate(cardPrefab, computerActiveCardPosition.position, Quaternion.identity);
         computerActiveCardObject.GetComponent<CardBehavior>().SetCard(computerActiveCard);
-        computerActiveCardObject.GetComponent<CardBehavior>().SetActiveCard(true);  // Aktivní karta poèítaèe
+        computerActiveCardObject.transform.SetParent(computerActiveCardPosition);
+        computerActiveCardObject.GetComponent<CardBehavior>().SetClickable(false);
+        computerActiveCardObject.GetComponent<CardBehavior>().SetGameManager(this);
+        computerActiveCardObject.GetComponent<CardBehavior>().FlipCard(true);
 
         computerPassiveCardObject = Instantiate(cardPrefab, computerPassiveCardPosition.position, Quaternion.identity);
         computerPassiveCardObject.GetComponent<CardBehavior>().SetCard(computerPassiveCard);
-        computerPassiveCardObject.GetComponent<CardBehavior>().SetActiveCard(false);  // Pasivní karta poèítaèe
-
-        playerActiveCardObject.GetComponent<CardBehavior>().SetGameManager(this);
-        playerPassiveCardObject.GetComponent<CardBehavior>().SetGameManager(this);
-        computerActiveCardObject.GetComponent<CardBehavior>().SetGameManager(this);
+        computerPassiveCardObject.transform.SetParent(computerPassiveCardPosition);
+        computerPassiveCardObject.GetComponent<CardBehavior>().SetClickable(false);
         computerPassiveCardObject.GetComponent<CardBehavior>().SetGameManager(this);
-
-        // Povolit klikání na pasivní kartu hráèe pro výmìnu
-        playerPassiveCardObject.GetComponent<CardBehavior>().SetClickable(true);
+        computerPassiveCardObject.GetComponent<CardBehavior>().FlipCard(false);
 
         Debug.Log("New round started with 4 cards drawn.");
     }
 
+
     public void OnCardPlayed(CardBehavior cardBehavior)
     {
-        // Pokud hráè hraje svou pasivní kartu, provedeme výmìnu
-        if (cardBehavior == playerPassiveCardObject.GetComponent<CardBehavior>() && canSwapCards)
+        if (hasSwapped) return;
+
+        if (cardBehavior == playerPassiveCardObject.GetComponent<CardBehavior>())
         {
-            Debug.Log("Player played passive card. Swapping with active card.");
+            CardBehavior activeCardBehavior = playerActiveCardObject.GetComponent<CardBehavior>();
+            CardBehavior passiveCardBehavior = playerPassiveCardObject.GetComponent<CardBehavior>();
 
-            // Výmìna karet mezi aktivní a pasivní kartou
-            SwapCards(playerActiveCardObject, playerPassiveCardObject);
+            Card tempCard = activeCardBehavior.GetCard();
+            activeCardBehavior.SetCard(passiveCardBehavior.GetCard());
+            passiveCardBehavior.SetCard(tempCard);
 
-            // Zakázání další výmìny
-            canSwapCards = false;
+            activeCardBehavior.FlipCard(true);
+            passiveCardBehavior.FlipCard(false);
+
+            hasSwapped = true;
+            Debug.Log("Player's cards swapped.");
         }
     }
 
-    void SwapCards(GameObject activeCardObject, GameObject passiveCardObject)
+
+    private void SwapCards(Transform activePosition, Transform passivePosition)
     {
-        CardBehavior activeCardBehavior = activeCardObject.GetComponent<CardBehavior>();
-        CardBehavior passiveCardBehavior = passiveCardObject.GetComponent<CardBehavior>();
+        if (activePosition.childCount == 0 || passivePosition.childCount == 0)
+        {
+            Debug.LogError("Active or Passive position doesn't have a card to swap.");
+            return;
+        }
 
-        // Výmìna karet
-        activeCardBehavior.SetActiveCard(false);
-        passiveCardBehavior.SetActiveCard(true);
+        Transform activeCard = activePosition.GetChild(0);
+        Transform passiveCard = passivePosition.GetChild(0);
 
-        // Zakáže klikání na pasivní kartu po výmìnì
-        passiveCardBehavior.SetClickable(false);
+        Vector3 tempPosition = activeCard.position;
+        activeCard.position = passiveCard.position;
+        passiveCard.position = tempPosition;
+
+        activeCard.GetComponent<CardBehavior>().SetClickable(true);
+        passiveCard.GetComponent<CardBehavior>().SetClickable(false);
+
+        activeCard.GetComponent<CardBehavior>().FlipCard(true);
+        passiveCard.GetComponent<CardBehavior>().FlipCard(false);
     }
 
     void UpdateScoreUI()

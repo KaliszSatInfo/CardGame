@@ -2,22 +2,27 @@ using UnityEngine;
 
 public class Card
 {
-    public int Value; // Hodnota karty (1-14)
-    public string Suit; // Barva karty (hearts, diamonds, clubs, spades)
-    public string ImagePath; // Cesta k obrázku
+    public int Value { get; private set; }
+    public string Suit { get; private set; }
 
     public Card(int value, string suit)
     {
         Value = value;
         Suit = suit;
-        ImagePath = $"Cards/{value}_of_{suit}";
     }
-    public int GetValue()
+    public Sprite GetSprite()
     {
-        return Value;
-    }
+        string spriteName = $"{Value}_of_{Suit}";
 
-    public string getSprite() {
-        return ImagePath;
+        string path = $"Cards/{spriteName}";
+
+        Sprite sprite = Resources.Load<Sprite>(path);
+
+        if (sprite == null)
+        {
+            Debug.LogError($"Sprite for {spriteName} not found in Resources at path: {path}!");
+        }
+
+        return sprite;
     }
 }
