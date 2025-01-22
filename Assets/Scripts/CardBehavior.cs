@@ -15,10 +15,8 @@ public class CardBehavior : MonoBehaviour
         if (cardRenderer == null)
         {
             cardRenderer = gameObject.AddComponent<SpriteRenderer>();
-            Debug.Log("SpriteRenderer was not found. Adding one.");
         }
     }
-
     public void SetCard(Card newCard)
     {
         card = newCard;
@@ -26,10 +24,6 @@ public class CardBehavior : MonoBehaviour
         if (cardRenderer != null)
         {
             cardRenderer.sprite = card.GetSprite();
-        }
-        else
-        {
-            Debug.LogError("cardRenderer is not assigned.");
         }
 
         if (!isActiveCard)
@@ -41,12 +35,10 @@ public class CardBehavior : MonoBehaviour
             ShowCard();
         }
     }
-
     public void SetGameManager(GameManager manager)
     {
         gameManager = manager;
     }
-
     public void SetActiveCard(bool isActive)
     {
         isActiveCard = isActive;
@@ -60,31 +52,26 @@ public class CardBehavior : MonoBehaviour
             SetCardBack();
         }
     }
-
     private void ShowCard()
     {
         cardRenderer.sprite = card.GetSprite();
         cardRenderer.enabled = true;
     }
-
     private void SetCardBack()
     {
         cardRenderer.sprite = Resources.Load<Sprite>("card_back");
         cardRenderer.enabled = true;
     }
-
     public void SetClickable(bool clickable)
     {
         isClickable = clickable;
     }
-
     private void OnMouseDown()
     {
         if (isClickable)
         {
             if (gameManager == null)
             {
-                Debug.LogError("GameManager is not assigned in CardBehavior.");
                 return;
             }
 
@@ -92,21 +79,17 @@ public class CardBehavior : MonoBehaviour
             isClickable = false;
         }
     }
-
     public void FlipCard(bool showFront)
     {
         if (showFront)
         {
             cardRenderer.sprite = card.GetSprite();
-            Debug.Log("Card flipped to front: " + card.GetSprite());
         }
         else
         {
             cardRenderer.sprite = Resources.Load<Sprite>("card_back");
-            Debug.Log("Card flipped to back.");
         }
     }
-
     public Card GetCard()
     {
         return card;

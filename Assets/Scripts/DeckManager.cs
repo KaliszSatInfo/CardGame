@@ -7,7 +7,6 @@ public class DeckManager : MonoBehaviour
     private string[] suits = { "hearts", "diamonds", "clubs", "spades" };
     public int DeckCount => deck.Count;
 
-
     void Start()
     {
         InitializeDeck();
@@ -16,7 +15,6 @@ public class DeckManager : MonoBehaviour
     public void InitializeDeck()
     {
         deck.Clear();
-        Debug.Log("Initializing deck...");
 
         foreach (string suit in suits)
         {
@@ -34,23 +32,10 @@ public class DeckManager : MonoBehaviour
             deck.Add(new Card(14, suit));
         }
 
-        Debug.Log($"Deck initialized with {deck.Count} cards.");
         ShuffleDeck();
-        DebugDeckContent();
     }
-
-    public void DebugDeckContent()
-    {
-        foreach (Card card in deck)
-        {
-            Debug.Log($"{card.Value} of {card.Suit}");
-        }
-    }
-
-
     void ShuffleDeck()
     {
-        Debug.Log("Shuffling deck...");
         for (int i = 0; i < deck.Count; i++)
         {
             Card temp = deck[i];
@@ -58,26 +43,22 @@ public class DeckManager : MonoBehaviour
             deck[i] = deck[randomIndex];
             deck[randomIndex] = temp;
         }
-        Debug.Log("Deck shuffled.");
     }
-
     public Card DrawCard()
     {
         if (deck.Count == 0)
         {
-            Debug.LogWarning("Deck is empty, reshuffling...");
             InitializeDeck();
             ShuffleDeck();
+
+            if (deck.Count == 0)
+            {
+                return new Card(0, "Default");
+            }
         }
 
-        if (deck.Count > 0)
-        {
-            Card card = deck[0];
-            deck.RemoveAt(0);
-            return card;
-        }
-
-        Debug.LogError("Deck is still empty after reshuffle!");
-        return null;
+        Card card = deck[0];
+        deck.RemoveAt(0);
+        return card;
     }
 }

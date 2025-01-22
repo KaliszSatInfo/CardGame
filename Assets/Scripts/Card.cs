@@ -18,11 +18,6 @@ public class Card
 
         Sprite sprite = Resources.Load<Sprite>(path);
 
-        if (sprite == null)
-        {
-            Debug.LogError($"Sprite for {spriteName} not found in Resources at path: {path}!");
-        }
-
         return sprite;
     }
 }
