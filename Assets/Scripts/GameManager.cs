@@ -95,7 +95,6 @@ public class GameManager : MonoBehaviour
         computerPassiveCardObject.GetComponent<CardBehavior>().SetClickable(false);
         computerPassiveCardObject.GetComponent<CardBehavior>().SetGameManager(this);
         computerPassiveCardObject.GetComponent<CardBehavior>().FlipCard(false);
-
     }
     private GameObject CreateCard(Card card, Transform position, bool isActive)
     {
