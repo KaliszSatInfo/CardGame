@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using System.Collections;
 
 public class GameManager : MonoBehaviour
 {
@@ -8,12 +9,7 @@ public class GameManager : MonoBehaviour
     public Transform playerPassiveCardPosition;
     public Transform computerActiveCardPosition;
     public Transform computerPassiveCardPosition;
-
     public GameObject cardPrefab;
-    private GameObject playerActiveCardObject;
-    private GameObject playerPassiveCardObject;
-    private GameObject computerActiveCardObject;
-    private GameObject computerPassiveCardObject;
 
     public TMP_Text playerScoreText;
     public TMP_Text computerScoreText;
@@ -26,31 +22,28 @@ public class GameManager : MonoBehaviour
     private int timeTillNewRound = 2;
     private int timeTillGameOver = 1;
 
+    private bool isPlayerTurn;
     private bool hasSwapped = false;
-    private bool gameOver = false;
+    private bool aiHasSwapped = false;
     private bool isRoundInProgress = false;
+
+    private GameObject playerActiveCardObject;
+    private GameObject playerPassiveCardObject;
+    private GameObject computerActiveCardObject;
+    private GameObject computerPassiveCardObject;
 
     void Start()
     {
-        endRoundButton.interactable = true;
-        if (deckManager == null)
-        {
-            return;
-        }
-
-        if (endRoundButton != null)
-        {
-            endRoundButton.onClick.AddListener(EndRound);
-        }
-
+        endRoundButton.interactable = false;
         deckManager.InitializeDeck();
         StartNewRound();
     }
+
     void StartNewRound()
     {
-        isRoundInProgress = false;
-
+        isRoundInProgress = true;
         hasSwapped = false;
+        aiHasSwapped = false;
         DestroyExistingCards();
 
         if (deckManager.DeckCount < 4)
@@ -63,97 +56,108 @@ public class GameManager : MonoBehaviour
         Card computerActiveCard = deckManager.DrawCard();
         Card computerPassiveCard = deckManager.DrawCard();
 
-        if (endRoundButton != null)
+        playerActiveCardObject = CreateCard(playerActiveCard, playerActiveCardPosition, true);
+        playerPassiveCardObject = CreateCard(playerPassiveCard, playerPassiveCardPosition, false);
+        computerActiveCardObject = CreateCard(computerActiveCard, computerActiveCardPosition, true);
+        computerPassiveCardObject = CreateCard(computerPassiveCard, computerPassiveCardPosition, false);
+
+        isPlayerTurn = Random.value > 0.5f;
+        Debug.Log(isPlayerTurn ? "Player starts!" : "AI starts!");
+
+        if (isPlayerTurn)
         {
             endRoundButton.interactable = true;
         }
-
-        playerActiveCardObject = Instantiate(cardPrefab, playerActiveCardPosition.position, Quaternion.identity);
-        playerActiveCardObject.GetComponent<CardBehavior>().SetCard(playerActiveCard);
-        playerActiveCardObject.transform.SetParent(playerActiveCardPosition);
-        playerActiveCardObject.GetComponent<CardBehavior>().SetClickable(false);
-        playerActiveCardObject.GetComponent<CardBehavior>().SetGameManager(this);
-        playerActiveCardObject.GetComponent<CardBehavior>().FlipCard(true);
-
-        playerPassiveCardObject = Instantiate(cardPrefab, playerPassiveCardPosition.position, Quaternion.identity);
-        playerPassiveCardObject.GetComponent<CardBehavior>().SetCard(playerPassiveCard);
-        playerPassiveCardObject.transform.SetParent(playerPassiveCardPosition);
-        playerPassiveCardObject.GetComponent<CardBehavior>().SetClickable(true);
-        playerPassiveCardObject.GetComponent<CardBehavior>().SetGameManager(this);
-        playerPassiveCardObject.GetComponent<CardBehavior>().FlipCard(false);
-
-        computerActiveCardObject = Instantiate(cardPrefab, computerActiveCardPosition.position, Quaternion.identity);
-        computerActiveCardObject.GetComponent<CardBehavior>().SetCard(computerActiveCard);
-        computerActiveCardObject.transform.SetParent(computerActiveCardPosition);
-        computerActiveCardObject.GetComponent<CardBehavior>().SetClickable(false);
-        computerActiveCardObject.GetComponent<CardBehavior>().SetGameManager(this);
-        computerActiveCardObject.GetComponent<CardBehavior>().FlipCard(true);
-
-        computerPassiveCardObject = Instantiate(cardPrefab, computerPassiveCardPosition.position, Quaternion.identity);
-        computerPassiveCardObject.GetComponent<CardBehavior>().SetCard(computerPassiveCard);
-        computerPassiveCardObject.transform.SetParent(computerPassiveCardPosition);
-        computerPassiveCardObject.GetComponent<CardBehavior>().SetClickable(false);
-        computerPassiveCardObject.GetComponent<CardBehavior>().SetGameManager(this);
-        computerPassiveCardObject.GetComponent<CardBehavior>().FlipCard(false);
+        else
+        {
+            StartCoroutine(AITurn());
+        }
     }
-    private GameObject CreateCard(Card card, Transform position, bool isActive)
+
+    public void EndPlayerTurn()
     {
-        if (card == null)
-        {
-            return null;
-        }
+        if (!isPlayerTurn || !isRoundInProgress) return;
 
-        GameObject cardObject = Instantiate(cardPrefab, position.position, Quaternion.identity);
-        CardBehavior cardBehavior = cardObject.GetComponent<CardBehavior>();
+        isPlayerTurn = false;
+        endRoundButton.interactable = false;
 
-        if (cardBehavior == null)
-        {
-            return null;
-        }
-
-        cardBehavior.SetCard(card);
-        cardObject.transform.SetParent(position);
-        cardBehavior.SetClickable(!isActive);
-        cardBehavior.SetGameManager(this);
-        cardBehavior.FlipCard(isActive);
-
-        return cardObject;
+        StartCoroutine(AITurn());
     }
-    public void EndRound()
+
+    IEnumerator AITurn()
+{
+    if (isPlayerTurn || !isRoundInProgress) yield break;
+
+    Debug.Log("AI is playing...");
+    yield return new WaitForSeconds(1f);
+
+    bool shouldSwap = !aiHasSwapped && Random.value > 0.5f;
+
+    if (shouldSwap)
     {
-        if (isRoundInProgress) return;
+        Debug.Log("AI is swapping cards...");
+        SwapAICards();
+        aiHasSwapped = true;
+        yield return new WaitForSeconds(1f);
+    }
 
-        isRoundInProgress = true;
+    Debug.Log("AI ends its round.");
+    yield return new WaitForSeconds(1f);
 
-        if (endRoundButton != null)
-        {
-            endRoundButton.interactable = false;
-        }
+    isPlayerTurn = true;
+    endRoundButton.interactable = true;
+}
 
+    IEnumerator PlayerSwapsCard()
+    {
+        yield return new WaitForSeconds(1f);
 
-        if (playerActiveCardObject == null || computerActiveCardObject == null)
-        {
-            isRoundInProgress = false;
-            return;
-        }
+        CardBehavior activeCardBehavior = playerActiveCardObject.GetComponent<CardBehavior>();
+        CardBehavior passiveCardBehavior = playerPassiveCardObject.GetComponent<CardBehavior>();
+
+        Card tempCard = activeCardBehavior.GetCard();
+        activeCardBehavior.SetCard(passiveCardBehavior.GetCard());
+        passiveCardBehavior.SetCard(tempCard);
+
+        activeCardBehavior.FlipCard(true);
+        passiveCardBehavior.FlipCard(false);
+
+        hasSwapped = true;
+        Debug.Log("Player swapped cards.");
+    }
+
+    public void OnCardPlayed(CardBehavior cardBehavior)
+    {
+        if (hasSwapped) return;
+        StartCoroutine(PlayerSwapsCard());
+    }
+
+    void SwapAICards()
+    {
+        CardBehavior activeCardBehavior = computerActiveCardObject.GetComponent<CardBehavior>();
+        CardBehavior passiveCardBehavior = computerPassiveCardObject.GetComponent<CardBehavior>();
+
+        Card tempCard = activeCardBehavior.GetCard();
+        activeCardBehavior.SetCard(passiveCardBehavior.GetCard());
+        passiveCardBehavior.SetCard(tempCard);
+
+        activeCardBehavior.FlipCard(true);
+        passiveCardBehavior.FlipCard(false);
+
+        Debug.Log("AI swapped its cards.");
+    }
+
+    private void EndRound()
+    {
+        if (playerActiveCardObject == null || computerActiveCardObject == null) return;
+
+        isRoundInProgress = false;
 
         CardBehavior playerCardBehavior = playerActiveCardObject.GetComponent<CardBehavior>();
         CardBehavior computerCardBehavior = computerActiveCardObject.GetComponent<CardBehavior>();
 
-        if (playerCardBehavior == null || computerCardBehavior == null)
-        {
-            isRoundInProgress = false;
-            return;
-        }
-
         Card playerCard = playerCardBehavior.GetCard();
         Card computerCard = computerCardBehavior.GetCard();
-
-        if (playerCard == null || computerCard == null)
-        {
-            isRoundInProgress = false;
-            return;
-        }
 
         if (playerCard.Value > computerCard.Value)
         {
@@ -171,7 +175,7 @@ public class GameManager : MonoBehaviour
         }
 
         if (playerScore >= 8)
-        {;
+        {
             UpdateRoundResult("Player has won!");
             Invoke(nameof(EndGame), timeTillGameOver);
             return;
@@ -186,41 +190,30 @@ public class GameManager : MonoBehaviour
         UpdateScoreUI();
         Invoke(nameof(StartNewRound), timeTillNewRound);
     }
-    void UpdateRoundResultText(string result)
-    {
-        if (roundResultText != null)
-        {
-            roundResultText.text = result;
-        }
 
-        Invoke(nameof(ClearRoundResultText), timeTillGameOver);
-    }
     void EndGame()
     {
-        if (endRoundButton != null)
-        {
-            endRoundButton.interactable = false;
-        }
-
-        gameOver = true;
-
-        playerScoreText.text = "";
-        computerScoreText.text = "";
-        roundResultText.text = "Game Over!";
+        endRoundButton.interactable = false;
+        Debug.Log("Game Over!");
     }
+
     void UpdateScoreUI()
     {
-        if (!gameOver)
-        {
-            playerScoreText.text = $"Player Score: {playerScore}";
-            computerScoreText.text = $"Computer Score: {computerScore}";
-        }
-        else
-        {
-            playerScoreText.text = "";
-            computerScoreText.text = "";
-        }
+        playerScoreText.text = $"Player Score: {playerScore}";
+        computerScoreText.text = $"Computer Score: {computerScore}";
     }
+
+    void UpdateRoundResult(string result)
+    {
+        roundResultText.text = result;
+        Invoke(nameof(ClearRoundResultText), 2f);
+    }
+
+    void ClearRoundResultText()
+    {
+        roundResultText.text = "";
+    }
+
     void DestroyExistingCards()
     {
         if (playerActiveCardObject != null) Destroy(playerActiveCardObject);
@@ -228,39 +221,17 @@ public class GameManager : MonoBehaviour
         if (computerActiveCardObject != null) Destroy(computerActiveCardObject);
         if (computerPassiveCardObject != null) Destroy(computerPassiveCardObject);
     }
-    public void OnCardPlayed(CardBehavior cardBehavior)
+
+    private GameObject CreateCard(Card card, Transform position, bool isActive)
     {
-        if (hasSwapped) return;
+        GameObject cardObject = Instantiate(cardPrefab, position.position, Quaternion.identity);
+        CardBehavior cardBehavior = cardObject.GetComponent<CardBehavior>();
+        cardBehavior.SetCard(card);
+        cardObject.transform.SetParent(position);
+        cardBehavior.SetClickable(!isActive);
+        cardBehavior.SetGameManager(this);
+        cardBehavior.FlipCard(isActive);
 
-        if (cardBehavior == playerPassiveCardObject.GetComponent<CardBehavior>())
-        {
-            CardBehavior activeCardBehavior = playerActiveCardObject.GetComponent<CardBehavior>();
-            CardBehavior passiveCardBehavior = playerPassiveCardObject.GetComponent<CardBehavior>();
-
-            Card tempCard = activeCardBehavior.GetCard();
-            activeCardBehavior.SetCard(passiveCardBehavior.GetCard());
-            passiveCardBehavior.SetCard(tempCard);
-
-            activeCardBehavior.FlipCard(true);
-            passiveCardBehavior.FlipCard(false);
-
-            hasSwapped = true;
-        }
-    }
-    void UpdateRoundResult(string result)
-    {
-        if (roundResultText != null)
-        {
-            roundResultText.text = result;
-        }
-        Invoke(nameof(ClearRoundResultText), timeTillNewRound);
-    }
-
-    void ClearRoundResultText()
-    {
-        if (roundResultText != null)
-        {
-            roundResultText.text = "";
-        }
+        return cardObject;
     }
 }
