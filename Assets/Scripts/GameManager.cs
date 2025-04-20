@@ -19,10 +19,7 @@ public class GameManager : MonoBehaviour
 
     private int playerScore = 0;
     private int computerScore = 0;
-    private int timeTillNewRound = 2;
-    private int timeTillGameOver = 1;
 
-    private bool isPlayerTurn;
     private bool hasSwapped = false;
     private bool aiHasSwapped = false;
     private bool isRoundInProgress = false;
@@ -51,6 +48,14 @@ public class GameManager : MonoBehaviour
             deckManager.InitializeDeck();
         }
 
+        CreateCardObjects();
+
+        Debug.Log("AI starts!");
+        StartCoroutine(AITurn());
+    }
+
+    private void CreateCardObjects()
+    {
         Card playerActiveCard = deckManager.DrawCard();
         Card playerPassiveCard = deckManager.DrawCard();
         Card computerActiveCard = deckManager.DrawCard();
@@ -60,53 +65,51 @@ public class GameManager : MonoBehaviour
         playerPassiveCardObject = CreateCard(playerPassiveCard, playerPassiveCardPosition, false);
         computerActiveCardObject = CreateCard(computerActiveCard, computerActiveCardPosition, true);
         computerPassiveCardObject = CreateCard(computerPassiveCard, computerPassiveCardPosition, false);
+    }
 
-        isPlayerTurn = Random.value > 0.5f;
-        Debug.Log(isPlayerTurn ? "Player starts!" : "AI starts!");
+    private GameObject CreateCard(Card card, Transform position, bool isActive)
+    {
+        GameObject cardObject = Instantiate(cardPrefab, position.position, Quaternion.identity);
+        CardBehavior cardBehavior = cardObject.GetComponent<CardBehavior>();
+        cardBehavior.SetCard(card);
+        cardObject.transform.SetParent(position);
+        cardBehavior.SetClickable(!isActive);
+        cardBehavior.SetGameManager(this);
+        cardBehavior.FlipCard(isActive);
 
-        if (isPlayerTurn)
+        return cardObject;
+    }
+
+    IEnumerator AITurn()
+    {
+        if (!isRoundInProgress) yield break;
+
+        Debug.Log("AI is playing...");
+        yield return new WaitForSeconds(1f);
+
+        bool shouldSwap = !aiHasSwapped && Random.value > 0.5f;
+        if (shouldSwap)
         {
-            endRoundButton.interactable = true;
+            Debug.Log("AI is swapping cards...");
+            SwapAICards();
+            aiHasSwapped = true;
+            yield return new WaitForSeconds(1f);
         }
-        else
-        {
-            StartCoroutine(AITurn());
-        }
+
+        Debug.Log("AI ends its round.");
+        yield return new WaitForSeconds(1f);
+
+        endRoundButton.interactable = true;
+        hasSwapped = false;
     }
 
     public void EndPlayerTurn()
     {
-        if (!isPlayerTurn || !isRoundInProgress) return;
+        if (!isRoundInProgress || !hasSwapped) return;
 
-        isPlayerTurn = false;
         endRoundButton.interactable = false;
-
-        StartCoroutine(AITurn());
+        EndRound();
     }
-
-    IEnumerator AITurn()
-{
-    if (isPlayerTurn || !isRoundInProgress) yield break;
-
-    Debug.Log("AI is playing...");
-    yield return new WaitForSeconds(1f);
-
-    bool shouldSwap = !aiHasSwapped && Random.value > 0.5f;
-
-    if (shouldSwap)
-    {
-        Debug.Log("AI is swapping cards...");
-        SwapAICards();
-        aiHasSwapped = true;
-        yield return new WaitForSeconds(1f);
-    }
-
-    Debug.Log("AI ends its round.");
-    yield return new WaitForSeconds(1f);
-
-    isPlayerTurn = true;
-    endRoundButton.interactable = true;
-}
 
     IEnumerator PlayerSwapsCard()
     {
@@ -124,6 +127,8 @@ public class GameManager : MonoBehaviour
 
         hasSwapped = true;
         Debug.Log("Player swapped cards.");
+
+        endRoundButton.interactable = true;
     }
 
     public void OnCardPlayed(CardBehavior cardBehavior)
@@ -174,21 +179,26 @@ public class GameManager : MonoBehaviour
             UpdateRoundResult("This round is a tie!");
         }
 
+        CheckGameOver();
+    }
+
+    private void CheckGameOver()
+    {
         if (playerScore >= 8)
         {
             UpdateRoundResult("Player has won!");
-            Invoke(nameof(EndGame), timeTillGameOver);
-            return;
+            Invoke(nameof(EndGame), 1f);
         }
         else if (computerScore >= 8)
         {
             UpdateRoundResult("Computer has won!");
-            Invoke(nameof(EndGame), timeTillGameOver);
-            return;
+            Invoke(nameof(EndGame), 1f);
         }
-
-        UpdateScoreUI();
-        Invoke(nameof(StartNewRound), timeTillNewRound);
+        else
+        {
+            UpdateScoreUI();
+            Invoke(nameof(StartNewRound), 2f);
+        }
     }
 
     void EndGame()
@@ -220,18 +230,5 @@ public class GameManager : MonoBehaviour
         if (playerPassiveCardObject != null) Destroy(playerPassiveCardObject);
         if (computerActiveCardObject != null) Destroy(computerActiveCardObject);
         if (computerPassiveCardObject != null) Destroy(computerPassiveCardObject);
-    }
-
-    private GameObject CreateCard(Card card, Transform position, bool isActive)
-    {
-        GameObject cardObject = Instantiate(cardPrefab, position.position, Quaternion.identity);
-        CardBehavior cardBehavior = cardObject.GetComponent<CardBehavior>();
-        cardBehavior.SetCard(card);
-        cardObject.transform.SetParent(position);
-        cardBehavior.SetClickable(!isActive);
-        cardBehavior.SetGameManager(this);
-        cardBehavior.FlipCard(isActive);
-
-        return cardObject;
     }
 }
