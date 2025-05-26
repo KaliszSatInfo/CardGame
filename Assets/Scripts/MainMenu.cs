@@ -31,12 +31,27 @@ public class MainMenu : MonoBehaviour
     {
         float savedVolume = PlayerPrefs.GetFloat("Volume", 1f);
         volumeSlider.value = savedVolume;
+        volumeSlider.onValueChanged.AddListener(SetVolume);
         AudioListener.volume = savedVolume;
-    }
 
+        if (MusicManager.instance != null)
+        {
+            MusicManager.instance.SetVolume(savedVolume);
+            MusicManager.instance.PlayMusic();
+        }
+
+        Debug.Log("AudioListener.volume: " + AudioListener.volume);
+    }
     public void SetVolume(float volume)
     {
+        Debug.Log("SetVolume called with: " + volume);
+
         AudioListener.volume = volume;
         PlayerPrefs.SetFloat("Volume", volume);
+
+        if (MusicManager.instance != null)
+        {
+            MusicManager.instance.SetVolume(volume);
+        }
     }
 }

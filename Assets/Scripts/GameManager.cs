@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -184,12 +185,12 @@ public class GameManager : MonoBehaviour
 
     private void CheckGameOver()
     {
-        if (playerScore >= 8)
+        if (playerScore >= 1)
         {
             UpdateRoundResult("Player has won!");
             Invoke(nameof(EndGame), 1f);
         }
-        else if (computerScore >= 8)
+        else if (computerScore >= 1)
         {
             UpdateRoundResult("Computer has won!");
             Invoke(nameof(EndGame), 1f);
@@ -205,7 +206,16 @@ public class GameManager : MonoBehaviour
     {
         endRoundButton.interactable = false;
         Debug.Log("Game Over!");
+
+        Invoke(nameof(ReturnToMainMenu), 2f);
     }
+
+    void ReturnToMainMenu()
+    {
+        SceneManager.LoadScene("MainMenu");
+    }
+
+
 
     void UpdateScoreUI()
     {
