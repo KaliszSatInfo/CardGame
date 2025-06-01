@@ -44,8 +44,6 @@ public class MainMenu : MonoBehaviour
     }
     public void SetVolume(float volume)
     {
-        Debug.Log("SetVolume called with: " + volume);
-
         AudioListener.volume = volume;
         PlayerPrefs.SetFloat("Volume", volume);
 

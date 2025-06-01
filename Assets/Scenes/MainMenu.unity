@@ -454,7 +454,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 559154182}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -2000,6 +2000,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   audioMixer: {fileID: 24100000, guid: 38225b652d94d4149b55683327dd4188, type: 2}
+  musicClips:
+  - {fileID: 8300000, guid: 3d0de3c720c861041b52e53251f660da, type: 3}
+  - {fileID: 8300000, guid: 7f832e7e95fdf104b8c36ab37aeb1429, type: 3}
+  - {fileID: 8300000, guid: 70d9282bc3f0a8945912f0d1322f66cf, type: 3}
+  - {fileID: 8300000, guid: afd0a679169ef2947b7c6f87fbfdeeb4, type: 3}
 --- !u!4 &2093480181
 Transform:
   m_ObjectHideFlags: 0
@@ -2292,6 +2297,6 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 1781065515}
-  - {fileID: 85482082}
   - {fileID: 210069632}
   - {fileID: 2093480181}
+  - {fileID: 85482082}
