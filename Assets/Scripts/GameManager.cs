@@ -69,9 +69,15 @@ public class GameManager : MonoBehaviour
 
         playerActiveCardObject = CreateCard(playerActiveCard, playerActiveCardPosition, true);
         playerPassiveCardObject = CreateCard(playerPassiveCard, playerPassiveCardPosition, false);
-        computerActiveCardObject = CreateCard(computerActiveCard, computerActiveCardPosition, true);
+        computerActiveCardObject = CreateCard(computerActiveCard, computerActiveCardPosition, false);
         computerPassiveCardObject = CreateCard(computerPassiveCard, computerPassiveCardPosition, false);
+
+        StartCoroutine(AnimateCardEntry(playerActiveCardObject));
+        StartCoroutine(AnimateCardEntry(playerPassiveCardObject));
+        StartCoroutine(AnimateCardEntry(computerActiveCardObject));
+        StartCoroutine(AnimateCardEntry(computerPassiveCardObject));
     }
+
 
     private GameObject CreateCard(Card card, Transform position, bool isActive)
     {
@@ -92,7 +98,12 @@ public class GameManager : MonoBehaviour
 
         yield return new WaitForSeconds(1f);
 
-        bool shouldSwap = !aiHasSwapped && Random.value > 0.5f;
+        CardBehavior activeCardBehavior = computerActiveCardObject.GetComponent<CardBehavior>();
+        int activeValue = activeCardBehavior.GetCard().Value;
+
+        float swapProbability = activeValue < 7 ? 0.75f : 0.15f;
+
+        bool shouldSwap = !aiHasSwapped && Random.value < swapProbability;
         if (shouldSwap)
         {
             SwapAICards();
@@ -108,6 +119,7 @@ public class GameManager : MonoBehaviour
         endRoundButton.interactable = true;
     }
 
+
     public void EndPlayerTurn()
     {
         if (!isRoundInProgress || !isPlayerTurn || !hasSwapped) return;
@@ -120,17 +132,17 @@ public class GameManager : MonoBehaviour
 
     IEnumerator PlayerSwapsCard()
     {
-        yield return new WaitForSeconds(1f);
+        yield return StartCoroutine(AnimateCardSwap(playerActiveCardObject, playerPassiveCardObject));
 
-        CardBehavior activeCardBehavior = playerActiveCardObject.GetComponent<CardBehavior>();
-        CardBehavior passiveCardBehavior = playerPassiveCardObject.GetComponent<CardBehavior>();
+        CardBehavior active = playerActiveCardObject.GetComponent<CardBehavior>();
+        CardBehavior passive = playerPassiveCardObject.GetComponent<CardBehavior>();
 
-        Card tempCard = activeCardBehavior.GetCard();
-        activeCardBehavior.SetCard(passiveCardBehavior.GetCard());
-        passiveCardBehavior.SetCard(tempCard);
+        Card temp = active.GetCard();
+        active.SetCard(passive.GetCard());
+        passive.SetCard(temp);
 
-        activeCardBehavior.FlipCard(true);
-        passiveCardBehavior.FlipCard(false);
+        active.FlipCard(true);
+        passive.FlipCard(false);
 
         hasSwapped = true;
         Debug.Log("Player swapped cards.");
@@ -148,18 +160,26 @@ public class GameManager : MonoBehaviour
 
     void SwapAICards()
     {
-        CardBehavior activeCardBehavior = computerActiveCardObject.GetComponent<CardBehavior>();
-        CardBehavior passiveCardBehavior = computerPassiveCardObject.GetComponent<CardBehavior>();
+        StartCoroutine(AISwapRoutine());
+    }
 
-        Card tempCard = activeCardBehavior.GetCard();
-        activeCardBehavior.SetCard(passiveCardBehavior.GetCard());
-        passiveCardBehavior.SetCard(tempCard);
+    IEnumerator AISwapRoutine()
+    {
+        yield return StartCoroutine(AnimateCardSwap(computerActiveCardObject, computerPassiveCardObject));
 
-        activeCardBehavior.FlipCard(true);
-        passiveCardBehavior.FlipCard(false);
+        CardBehavior active = computerActiveCardObject.GetComponent<CardBehavior>();
+        CardBehavior passive = computerPassiveCardObject.GetComponent<CardBehavior>();
+
+        Card temp = active.GetCard();
+        active.SetCard(passive.GetCard());
+        passive.SetCard(temp);
+
+        active.FlipCard(false);
+        passive.FlipCard(false);
 
         Debug.Log("AI swapped its cards.");
     }
+
 
     private void EndRound()
     {
@@ -194,14 +214,12 @@ public class GameManager : MonoBehaviour
 
     private void CheckGameOver()
     {
-        if (playerScore >= 2)
+        if (playerScore >= 8)
         {
-            UpdateRoundResult("Player has won!");
             Invoke(nameof(EndGame), 1f);
         }
-        else if (computerScore >= 2)
+        else if (computerScore >= 8)
         {
-            UpdateRoundResult("Computer has won!");
             Invoke(nameof(EndGame), 1f);
         }
         else
@@ -221,22 +239,22 @@ public class GameManager : MonoBehaviour
 
     void ReturnToMainMenu()
     {
-        if (playerScore >= 2)
+        if (playerScore >= 8)
             SceneManager.LoadScene("WinScene");
-        else if (computerScore >= 2)
+        else if (computerScore >= 8)
             SceneManager.LoadScene("LoseScene");
     }
 
     void UpdateScoreUI()
     {
-        playerScoreText.text = $"Player Score: {playerScore}";
-        computerScoreText.text = $"Computer Score: {computerScore}";
+        playerScoreText.text = $"Player: {playerScore}";
+        computerScoreText.text = $"Computer: {computerScore}";
     }
 
     void UpdateRoundResult(string result)
     {
         roundResultText.text = result;
-        Invoke(nameof(ClearRoundResultText), 2f);
+        Invoke(nameof(ClearRoundResultText), 1f);
     }
 
     void ClearRoundResultText()
@@ -250,5 +268,94 @@ public class GameManager : MonoBehaviour
         if (playerPassiveCardObject != null) Destroy(playerPassiveCardObject);
         if (computerActiveCardObject != null) Destroy(computerActiveCardObject);
         if (computerPassiveCardObject != null) Destroy(computerPassiveCardObject);
+    }
+
+    IEnumerator AnimateCardEntry(GameObject cardObject)
+    {
+        float duration = 0.4f;
+        float elapsed = 0f;
+
+        Vector3 startScale = Vector3.zero;
+        Vector3 endScale = Vector3.one * 0.45f;
+
+        cardObject.transform.localScale = startScale;
+
+        SpriteRenderer sr = cardObject.GetComponent<SpriteRenderer>();
+        Color startColor = new Color(1, 1, 1, 0);
+        Color endColor = new Color(1, 1, 1, 1);
+        sr.color = startColor;
+
+        while (elapsed < duration)
+        {
+            float t = elapsed / duration;
+            cardObject.transform.localScale = Vector3.Lerp(startScale, endScale, t);
+            sr.color = Color.Lerp(startColor, endColor, t);
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        cardObject.transform.localScale = endScale;
+        sr.color = endColor;
+    }
+
+   IEnumerator AnimateCardSwap(GameObject card1, GameObject card2, float moveDuration = 0.5f, float flipDuration = 0.5f, float delayBetween = 0.2f, System.Action onFlipComplete = null)
+    {
+        Vector3 startPos1 = card1.transform.position;
+        Vector3 startPos2 = card2.transform.position;
+
+        float elapsed = 0f;
+
+        while (elapsed < moveDuration)
+        {
+            float t = elapsed / moveDuration;
+            card1.transform.position = Vector3.Lerp(startPos1, startPos2, t);
+            card2.transform.position = Vector3.Lerp(startPos2, startPos1, t);
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        card1.transform.position = startPos2;
+        card2.transform.position = startPos1;
+
+        yield return new WaitForSeconds(delayBetween);
+
+        elapsed = 0f;
+
+        Quaternion rot1 = card1.transform.rotation;
+        Quaternion rot2 = card2.transform.rotation;
+
+        bool swapped = false;
+
+        while (elapsed < flipDuration)
+        {
+            float t = elapsed / flipDuration;
+
+            float angle;
+            if (t < 0.5f)
+            {
+                angle = Mathf.Lerp(0f, 90f, t * 2f);
+            }
+            else
+            {
+                angle = Mathf.Lerp(90f, 0f, (t - 0.5f) * 2f);
+            }
+
+            card1.transform.rotation = rot1 * Quaternion.Euler(0f, angle, 0f);
+            card2.transform.rotation = rot2 * Quaternion.Euler(0f, angle, 0f);
+
+            if (!swapped && t >= 0.5f)
+            {
+                swapped = true;
+                onFlipComplete?.Invoke();
+            }
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        card1.transform.rotation = rot1;
+        card2.transform.rotation = rot2;
     }
 }
