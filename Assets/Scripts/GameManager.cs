@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using System.Collections;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 
 public class GameManager : MonoBehaviour
 {
@@ -37,12 +38,14 @@ public class GameManager : MonoBehaviour
         deckManager.InitializeDeck();
         StartNewRound();
     }
-
     void StartNewRound()
     {
         isRoundInProgress = true;
+        isPlayerTurn = false;
         hasSwapped = false;
         aiHasSwapped = false;
+
+        endRoundButton.interactable = false;
 
         DestroyExistingCards();
 
@@ -52,12 +55,6 @@ public class GameManager : MonoBehaviour
         }
 
         CreateCardObjects();
-
-        isPlayerTurn = false;
-        endRoundButton.interactable = false;
-
-        Debug.Log("AI starts!");
-        StartCoroutine(AITurn());
     }
 
     private void CreateCardObjects()
@@ -67,29 +64,94 @@ public class GameManager : MonoBehaviour
         Card computerActiveCard = deckManager.DrawCard();
         Card computerPassiveCard = deckManager.DrawCard();
 
-        playerActiveCardObject = CreateCard(playerActiveCard, playerActiveCardPosition, true);
+        playerActiveCardObject = CreateCard(playerActiveCard, playerActiveCardPosition, false);
         playerPassiveCardObject = CreateCard(playerPassiveCard, playerPassiveCardPosition, false);
         computerActiveCardObject = CreateCard(computerActiveCard, computerActiveCardPosition, false);
         computerPassiveCardObject = CreateCard(computerPassiveCard, computerPassiveCardPosition, false);
 
-        StartCoroutine(AnimateCardEntry(playerActiveCardObject));
-        StartCoroutine(AnimateCardEntry(playerPassiveCardObject));
-        StartCoroutine(AnimateCardEntry(computerActiveCardObject));
-        StartCoroutine(AnimateCardEntry(computerPassiveCardObject));
+        StartCoroutine(DealAndShuffleRoutine());
     }
 
-
-    private GameObject CreateCard(Card card, Transform position, bool isActive)
+    private GameObject CreateCard(Card card, Transform position, bool isFaceUp)
     {
         GameObject cardObject = Instantiate(cardPrefab, position.position, Quaternion.identity);
         CardBehavior cardBehavior = cardObject.GetComponent<CardBehavior>();
         cardBehavior.SetCard(card);
         cardObject.transform.SetParent(position);
-        cardBehavior.SetClickable(!isActive);
+        cardBehavior.SetClickable(false);
         cardBehavior.SetGameManager(this);
-        cardBehavior.FlipCard(isActive);
-
+        cardBehavior.FlipCard(isFaceUp);
         return cardObject;
+    }
+
+    IEnumerator DealAndShuffleRoutine()
+    {
+        GameObject[] cards = new GameObject[] { playerActiveCardObject, playerPassiveCardObject, computerActiveCardObject, computerPassiveCardObject };
+
+        foreach (GameObject card in cards)
+        {
+            yield return StartCoroutine(AnimateCardEntry(card));
+        }
+
+        CardBehavior pb1 = playerActiveCardObject.GetComponent<CardBehavior>();
+        CardBehavior cb1 = computerActiveCardObject.GetComponent<CardBehavior>();
+        pb1.FlipCard(true);
+        cb1.FlipCard(true);
+        yield return new WaitForSeconds(3f);
+        pb1.FlipCard(false);
+        cb1.FlipCard(false);
+        yield return new WaitForSeconds(0.5f);
+
+        List<Vector3> positions = new List<Vector3> {
+            playerActiveCardPosition.position,
+            playerPassiveCardPosition.position,
+            computerActiveCardPosition.position,
+            computerPassiveCardPosition.position
+        };
+
+        for (int i = 0; i < 15; i++)
+        {
+            int a = Random.Range(0, cards.Length);
+            int b = Random.Range(0, cards.Length);
+            while (b == a) b = Random.Range(0, cards.Length);
+
+            yield return StartCoroutine(AnimateCardSwap(cards[a], cards[b], 0.15f, 0.1f, 0f));
+            GameObject temp = cards[a];
+            cards[a] = cards[b];
+            cards[b] = temp;
+        }
+
+        yield return new WaitForSeconds(0.3f);
+
+        for (int i = 0; i < cards.Length; i++)
+        {
+            GameObject card = cards[i];
+            if (card.transform.position == playerActiveCardPosition.position)
+            {
+                playerActiveCardObject = card;
+            }
+            else if (card.transform.position == playerPassiveCardPosition.position)
+            {
+                playerPassiveCardObject = card;
+            }
+            else if (card.transform.position == computerActiveCardPosition.position)
+            {
+                computerActiveCardObject = card;
+            }
+            else if (card.transform.position == computerPassiveCardPosition.position)
+            {
+                computerPassiveCardObject = card;
+            }
+        }
+
+        playerActiveCardObject.GetComponent<CardBehavior>().FlipCard(true);
+
+        yield return new WaitForSeconds(0.5f);
+
+        isPlayerTurn = false;
+        endRoundButton.interactable = false;
+
+        StartCoroutine(AITurn());
     }
 
     IEnumerator AITurn()
@@ -114,21 +176,40 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(1f);
 
         isPlayerTurn = true;
-        hasSwapped = false;
+    hasSwapped = false;
 
-        endRoundButton.interactable = true;
+    playerActiveCardObject.GetComponent<CardBehavior>().SetClickable(true);
+    playerPassiveCardObject.GetComponent<CardBehavior>().SetClickable(true);
+
+    endRoundButton.interactable = true;
     }
-
 
     public void EndPlayerTurn()
     {
-        if (!isRoundInProgress || !isPlayerTurn || !hasSwapped) return;
+        if (!isRoundInProgress || !isPlayerTurn)
+            return;
 
         endRoundButton.interactable = false;
+        playerActiveCardObject.GetComponent<CardBehavior>().SetClickable(false);
+        playerPassiveCardObject.GetComponent<CardBehavior>().SetClickable(false);
+
         isPlayerTurn = false;
+        isRoundInProgress = false;
+
+        StartCoroutine(RevealActiveCardsAndEndRound());
+    }
+
+
+    IEnumerator RevealActiveCardsAndEndRound()
+    {
+        playerActiveCardObject.GetComponent<CardBehavior>().FlipCard(true);
+        computerActiveCardObject.GetComponent<CardBehavior>().FlipCard(true);
+
+        yield return new WaitForSeconds(2f);
 
         EndRound();
     }
+
 
     IEnumerator PlayerSwapsCard()
     {
@@ -145,7 +226,6 @@ public class GameManager : MonoBehaviour
         passive.FlipCard(false);
 
         hasSwapped = true;
-        Debug.Log("Player swapped cards.");
 
         if (isPlayerTurn)
             endRoundButton.interactable = true;
@@ -176,10 +256,7 @@ public class GameManager : MonoBehaviour
 
         active.FlipCard(false);
         passive.FlipCard(false);
-
-        Debug.Log("AI swapped its cards.");
     }
-
 
     private void EndRound()
     {
@@ -188,8 +265,16 @@ public class GameManager : MonoBehaviour
         isRoundInProgress = false;
         isPlayerTurn = false;
 
+        StartCoroutine(RevealCardsAndProcessRound());
+    }
+
+    IEnumerator RevealCardsAndProcessRound()
+    {
         CardBehavior playerCardBehavior = playerActiveCardObject.GetComponent<CardBehavior>();
         CardBehavior computerCardBehavior = computerActiveCardObject.GetComponent<CardBehavior>();
+
+        playerCardBehavior.FlipCard(true);
+        computerCardBehavior.FlipCard(true);
 
         Card playerCard = playerCardBehavior.GetCard();
         Card computerCard = computerCardBehavior.GetCard();
@@ -209,6 +294,9 @@ public class GameManager : MonoBehaviour
             UpdateRoundResult("This round is a tie!");
         }
 
+        yield return new WaitForSeconds(3f);
+
+        UpdateScoreUI();
         CheckGameOver();
     }
 
@@ -232,8 +320,6 @@ public class GameManager : MonoBehaviour
     void EndGame()
     {
         endRoundButton.interactable = false;
-        Debug.Log("Game Over!");
-
         Invoke(nameof(ReturnToMainMenu), 2f);
     }
 
@@ -254,7 +340,7 @@ public class GameManager : MonoBehaviour
     void UpdateRoundResult(string result)
     {
         roundResultText.text = result;
-        Invoke(nameof(ClearRoundResultText), 1f);
+        Invoke(nameof(ClearRoundResultText), 3f);
     }
 
     void ClearRoundResultText()
@@ -299,7 +385,7 @@ public class GameManager : MonoBehaviour
         sr.color = endColor;
     }
 
-   IEnumerator AnimateCardSwap(GameObject card1, GameObject card2, float moveDuration = 0.5f, float flipDuration = 0.5f, float delayBetween = 0.2f, System.Action onFlipComplete = null)
+    IEnumerator AnimateCardSwap(GameObject card1, GameObject card2, float moveDuration = 0.5f, float flipDuration = 0.5f, float delayBetween = 0.2f, System.Action onFlipComplete = null)
     {
         Vector3 startPos1 = card1.transform.position;
         Vector3 startPos2 = card2.transform.position;

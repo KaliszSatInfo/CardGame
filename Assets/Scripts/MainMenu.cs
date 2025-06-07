@@ -39,8 +39,6 @@ public class MainMenu : MonoBehaviour
             MusicManager.instance.SetVolume(savedVolume);
             MusicManager.instance.PlayMusic();
         }
-
-        Debug.Log("AudioListener.volume: " + AudioListener.volume);
     }
     public void SetVolume(float volume)
     {

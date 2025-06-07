@@ -45,8 +45,6 @@ public class MusicManager : MonoBehaviour
 
         float volumeDb = Mathf.Lerp(minDb, maxDb, sliderValue);
         audioMixer.SetFloat("MusicVolume", volumeDb);
-
-        Debug.Log($"Set volume: {sliderValue} -> {volumeDb} dB");
     }
 
     public void PlayMusic()
